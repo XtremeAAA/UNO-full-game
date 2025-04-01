@@ -33,17 +33,25 @@ int isPlayable(const char *card, const char *topCard) {
 }
 
 // Function to handle special cards (+2, +4, Reverse)
-void handleSpecialCards(const char *card, const char *deck[], int *deckSize, const char **opponentHand, int *opponentHandSize, int *direction) {
-    if (strcmp(card, "+2") == 0) {
+void handleSpecialCards(const char *card, const char *deck[], int *deckSize, const char **opponentHand, int *opponentHandSize, int *direction, int *skipTurn) {
+    if (strstr(card, "+2") != NULL) {  // Check if the card contains "+2"
         printf("The opponent must draw 2 cards!\n");
         drawCard(deck, deckSize, opponentHand, opponentHandSize, 2);  // Opponent draws 2 cards
-    } else if (strcmp(card, "+4") == 0) {
-        printf("The opponent must draw 4 cards!\n");
+        *skipTurn = 1;  // Skip opponent's turn
+    } else if (strcmp(card, "+4") == 0) {  // Check if the card is a +4 card
+        printf("\nThe opponent must draw 4 cards!\n");
         drawCard(deck, deckSize, opponentHand, opponentHandSize, 4);  // Opponent draws 4 cards
-    } else if (strcmp(card, "RRev") == 0) {
+        *skipTurn = 1;  // Skip opponent's turn
+    } else if (strcmp(card, "RRev") == 0) {  // Check if the card is a Reverse card
         *direction = -(*direction);  // Reverse the direction of play
-        printf("The direction of play has reversed!\n");
+        printf("\nThe direction of play has reversed!\n");
     }
+}
+
+// Ensure the starting card is a number card (0-9)
+int isNumberCard(const char *card) {
+    // Check if the second character of the card is between '0' and '9'
+    return card[1] >= '0' && card[1] <= '9';
 }
 
 int main(void) {
@@ -62,6 +70,8 @@ int main(void) {
     int computerHandSize = 7;  // Computer starts with 7 cards
     const char *topCard;  // The current top card
     int direction = 1;  // 1 for normal direction (left to right), -1 for reversed direction
+    int turn = 0;  // 0 for player's turn, 1 for computer's turn
+    int skipTurn = 0;  // Variable to track if the opponent's turn should be skipped
 
     srand(time(NULL));  // Seed the random number generator
 
@@ -89,69 +99,112 @@ int main(void) {
         computerHand[i] = deck[i + 7];
     }
     deckSize -= 14;  // 14 cards have been dealt
-    topCard = deck[14];  // Set the top card to be the 15th card in the shuffled deck
+
+    // Find the first number card in the deck to use as the starting card
+    for (int i = 14; i < deckSize; i++) {
+        if (isNumberCard(deck[i])) {
+            topCard = deck[i];  // Set the top card to the first number card
+            // Shift the remaining cards in the deck
+            for (int j = i; j < deckSize - 1; j++) {
+                deck[j] = deck[j + 1];
+            }
+            deckSize--;  // Reduce the deck size
+            break;
+        }
+    }
 
     // Game loop: continue until either the player or the computer runs out of cards
     while (playerHandSize > 0 && computerHandSize > 0) {
+        printf("\n----------------------------------\n");
         printf("\nTop card: %s\n", topCard);  // Display the top card
-        printHand(playerHand, playerHandSize);  // Print the player's hand
 
-        // Player's turn
-        int playerChoice = -1;
-        printf("Choose a card to play (0-%d) or draw (-1): ", playerHandSize - 1);
-        scanf("%d", &playerChoice);
+        if (turn == 0) {
+            // Player's turn
+            printHand(playerHand, playerHandSize);  // Print the player's hand
+            printf("Computer has %d cards.\n", computerHandSize);
 
-        // Handle the player's card choice
-        if (playerChoice == -1) {
-            drawCard(deck, &deckSize, playerHand, &playerHandSize, 1);  // Player draws a card
-            printf("You drew a card!\n");
-        } else if (playerChoice >= 0 && playerChoice < playerHandSize && isPlayable(playerHand[playerChoice], topCard)) {
-            topCard = playerHand[playerChoice];  // Player plays a valid card
-            printf("You played %s\n", topCard);
-            handleSpecialCards(topCard, deck, &deckSize, computerHand, &computerHandSize, &direction);  // Handle special cards
-            for (int i = playerChoice; i < playerHandSize - 1; i++) {
-                playerHand[i] = playerHand[i + 1];  // Shift the remaining cards
+            int playerChoice = -1;
+            printf("Choose a card to play (0-%d) or draw (-1): ", playerHandSize - 1);
+
+            // Validate input
+            while (scanf("%d", &playerChoice) != 1 || (playerChoice != -1 && (playerChoice < 0 || playerChoice >= playerHandSize))) {
+                // Clear invalid input
+                while (getchar() != '\n');  // Clear the buffer
+                printf("Invalid input! Please choose a valid card (0-%d) or draw (-1): ", playerHandSize - 1);
             }
-            playerHandSize--;  // Decrease hand size after playing a card
-        } else {
-            printf("Invalid choice! Try again.\n");
-            continue;  // If the choice is invalid, ask the player again
-        }
 
-        // Check if the player has won
-        if (playerHandSize == 0) {
-            printf("You won!\n");
-            break;
-        }
+            // Handle the player's card choice
+            if (playerChoice == -1) {
+                drawCard(deck, &deckSize, playerHand, &playerHandSize, 1);  // Player draws a card
+                printf("\n----------------------------------\n");
+                printf("You drew a card!\n");
+            } else if (isPlayable(playerHand[playerChoice], topCard) || strcmp(topCard, "+4") == 0) {
+                // Allow any card to be played if the top card is +4
+                topCard = playerHand[playerChoice];  // Player plays a valid card
+                printf("\n----------------------------------\n");
+                printf("You played %s\n", topCard);
+                handleSpecialCards(topCard, deck, &deckSize, computerHand, &computerHandSize, &direction, &skipTurn);  // Handle special cards
+                for (int i = playerChoice; i < playerHandSize - 1; i++) {
+                    playerHand[i] = playerHand[i + 1];  // Shift the remaining cards
+                }
+                playerHandSize--;  // Decrease hand size after playing a card
+            } else {
+                // Invalid card choice
+                printf("Invalid card! You must choose a playable card.\n");
+                continue;  // Restart the player's turn
+            }
 
-        // Computer's turn
-        int computerChoice = -1;
-        for (int i = 0; i < computerHandSize; i++) {
-            if (isPlayable(computerHand[i], topCard)) {
-                computerChoice = i;  // Computer finds a playable card
+            // Check if the player has won
+            if (playerHandSize == 0) {
+                printf("\nYou won!\n");
                 break;
             }
-        }
 
-        // If the computer can play a card, it does; otherwise, it draws a card
-        if (computerChoice >= 0) {
-            topCard = computerHand[computerChoice];  // Computer plays a valid card
-            printf("Computer played %s\n", topCard);
-            handleSpecialCards(topCard, deck, &deckSize, playerHand, &playerHandSize, &direction);  // Handle special cards
-            for (int i = computerChoice; i < computerHandSize - 1; i++) {
-                computerHand[i] = computerHand[i + 1];  // Shift the remaining cards
+            // Skip the opponent's turn if a +2 or +4 was played
+            if (skipTurn) {
+                skipTurn = 0;  // Reset skipTurn
+                continue;  // Player gets another turn
             }
-            computerHandSize--;  // Decrease hand size after playing a card
-        } else {
-            drawCard(deck, &deckSize, computerHand, &computerHandSize, 1);  // Computer draws a card
-            printf("Computer drew a card!\n");
+        } else if (turn == 1) {
+            // Computer's turn
+            int computerChoice = -1;
+            for (int i = 0; i < computerHandSize; i++) {
+                if (isPlayable(computerHand[i], topCard) || strcmp(topCard, "+4") == 0) {
+                    // Allow any card to be played if the top card is +4
+                    computerChoice = i;  // Computer finds a playable card
+                    break;
+                }
+            }
+
+            // If the computer can play a card, it does; otherwise, it draws a card
+            if (computerChoice >= 0) {
+                topCard = computerHand[computerChoice];  // Computer plays a valid card
+                printf("Computer played %s\n", topCard);
+                handleSpecialCards(topCard, deck, &deckSize, playerHand, &playerHandSize, &direction, &skipTurn);  // Handle special cards
+                for (int i = computerChoice; i < computerHandSize - 1; i++) {
+                    computerHand[i] = computerHand[i + 1];  // Shift the remaining cards
+                }
+                computerHandSize--;  // Decrease hand size after playing a card
+            } else {
+                drawCard(deck, &deckSize, computerHand, &computerHandSize, 1);  // Computer draws a card
+                printf("Computer drew a card!\n");
+            }
+
+            // Check if the computer has won
+            if (computerHandSize == 0) {
+                printf("\nComputer won!\n");
+                break;
+            }
+
+            // Skip the opponent's turn if a +2 or +4 was played
+            if (skipTurn) {
+                skipTurn = 0;  // Reset skipTurn
+                continue;  // Computer gets another turn
+            }
         }
 
-        // Check if the computer has won
-        if (computerHandSize == 0) {
-            printf("Computer won!\n");
-            break;
-        }
+        // Alternate turns
+        turn = 1 - turn;
     }
 
     return 0;  // End of game
