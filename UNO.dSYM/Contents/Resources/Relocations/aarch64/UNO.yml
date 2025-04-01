@@ -1,0 +1,5 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/achintsingh/Documents/Uni/ENGG1000/SDL/Assessment/UNO-full-game/UNO'
+relocations:     []
+...

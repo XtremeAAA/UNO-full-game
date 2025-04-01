@@ -38,7 +38,7 @@ void handleSpecialCards(const char *card, const char *deck[], int *deckSize, con
         printf("The opponent must draw 2 cards!\n");
         drawCard(deck, deckSize, opponentHand, opponentHandSize, 2);  // Opponent draws 2 cards
     } else if (strcmp(card, "+4") == 0) {
-        printf("\nThe opponent must draw 4 cards!\n");
+        printf("The opponent must draw 4 cards!\n");
         drawCard(deck, deckSize, opponentHand, opponentHandSize, 4);  // Opponent draws 4 cards
     } else if (strcmp(card, "RRev") == 0) {
         *direction = -(*direction);  // Reverse the direction of play
@@ -93,41 +93,34 @@ int main(void) {
 
     // Game loop: continue until either the player or the computer runs out of cards
     while (playerHandSize > 0 && computerHandSize > 0) {
-        printf("\n----------------------------------\n");
         printf("\nTop card: %s\n", topCard);  // Display the top card
         printHand(playerHand, playerHandSize);  // Print the player's hand
-        printf("Computer has %d cards.\n", computerHandSize);
 
         // Player's turn
         int playerChoice = -1;
         printf("Choose a card to play (0-%d) or draw (-1): ", playerHandSize - 1);
-
-        // Validate input
-        while (scanf("%d", &playerChoice) != 1 || (playerChoice != -1 && (playerChoice < 0 || playerChoice >= playerHandSize))) {
-            // Clear invalid input
-            while (getchar() != '\n');  // clear the buffer
-            printf("Invalid input! Please choose a valid card (0-%d) or draw (-1): ", playerHandSize - 1);
-        }
+        scanf("%d", &playerChoice);
 
         // Handle the player's card choice
         if (playerChoice == -1) {
             drawCard(deck, &deckSize, playerHand, &playerHandSize, 1);  // Player draws a card
-            printf("\n----------------------------------\n");
             printf("You drew a card!\n");
-        } else if (isPlayable(playerHand[playerChoice], topCard)) {
+        } else if (playerChoice >= 0 && playerChoice < playerHandSize && isPlayable(playerHand[playerChoice], topCard)) {
             topCard = playerHand[playerChoice];  // Player plays a valid card
-            printf("\n----------------------------------\n");
             printf("You played %s\n", topCard);
             handleSpecialCards(topCard, deck, &deckSize, computerHand, &computerHandSize, &direction);  // Handle special cards
             for (int i = playerChoice; i < playerHandSize - 1; i++) {
                 playerHand[i] = playerHand[i + 1];  // Shift the remaining cards
             }
             playerHandSize--;  // Decrease hand size after playing a card
+        } else {
+            printf("Invalid choice! Try again.\n");
+            continue;  // If the choice is invalid, ask the player again
         }
 
         // Check if the player has won
         if (playerHandSize == 0) {
-            printf("\nYou won!\n");
+            printf("You won!\n");
             break;
         }
 
@@ -143,7 +136,7 @@ int main(void) {
         // If the computer can play a card, it does; otherwise, it draws a card
         if (computerChoice >= 0) {
             topCard = computerHand[computerChoice];  // Computer plays a valid card
-            printf("Computer played %s", topCard);
+            printf("Computer played %s\n", topCard);
             handleSpecialCards(topCard, deck, &deckSize, playerHand, &playerHandSize, &direction);  // Handle special cards
             for (int i = computerChoice; i < computerHandSize - 1; i++) {
                 computerHand[i] = computerHand[i + 1];  // Shift the remaining cards
@@ -151,12 +144,12 @@ int main(void) {
             computerHandSize--;  // Decrease hand size after playing a card
         } else {
             drawCard(deck, &deckSize, computerHand, &computerHandSize, 1);  // Computer draws a card
-            printf("Computer drew a card!");
+            printf("Computer drew a card!\n");
         }
 
         // Check if the computer has won
         if (computerHandSize == 0) {
-            printf("\nComputer won!");
+            printf("Computer won!\n");
             break;
         }
     }
