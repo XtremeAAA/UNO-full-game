@@ -28,7 +28,7 @@ void drawCard(const char *deck[], int *deckSize, const char **hand, int *handSiz
 
 // Function to check if a card is playable based on the top card
 int isPlayable(const char *card, const char *topCard) {
-    // A card is playable if it matches the color or number or is a special card (+2, +4)
+    // A card is playable if it matches the colour or number or is a special card (+2, +4)
     return (card[0] == topCard[0] || card[1] == topCard[1] || strcmp(card, "+4") == 0 || strcmp(card, "+2") == 0);
 }
 
@@ -75,7 +75,7 @@ int main(void) {
 
     srand(time(NULL));  // Seed the random number generator
 
-    // Populate the deck with the respective color and wild cards
+    // Populate the deck with the respective colour and wild cards
     for (int i = 0; i < 13; i++) {
         deck[i] = red[i];
         deck[i + 13] = green[i];
@@ -142,7 +142,7 @@ int main(void) {
                 // Allow any card to be played if the top card is +4
                 topCard = playerHand[playerChoice];  // Player plays a valid card
                 printf("\n----------------------------------\n");
-                printf("You played %s\n", topCard);
+                printf("\nYou played %s\n", topCard);
                 handleSpecialCards(topCard, deck, &deckSize, computerHand, &computerHandSize, &direction, &skipTurn);  // Handle special cards
                 for (int i = playerChoice; i < playerHandSize - 1; i++) {
                     playerHand[i] = playerHand[i + 1];  // Shift the remaining cards
